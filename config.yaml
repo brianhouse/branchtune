@@ -1,1 +1,6 @@
 device_name: null
+
+mongo:
+    host: localhost
+    port: 27017
+    database: branches

@@ -6,6 +6,7 @@ from random import random
 from collections import deque
 from housepy import config, log, util, animation
 from housepy.xbee import XBee
+from mongo import db
 
 samples = deque()
 
@@ -13,11 +14,10 @@ def message_handler(response):
     # log.info(response)
     try:
         global samples
+        print(response['sensor'], response['samples'], response['rssi'])
         t = util.timestamp(ms=True)
-        # model.insert_data(t, response['samples'], response['sensor'])
+        db.branches.insert({'t_utc': t, 'sensor': response['sensor'], 'samples': response['samples'], 'rssi': response['rssi']})
         data = [sample / 1023 for sample in response['samples']]
-        # print(response['samples'])
-        # data = [random(), random(), random()] 
         samples.appendleft((t, data))
         if len(samples) == 1000:
             samples.pop()
