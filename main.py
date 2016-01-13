@@ -9,6 +9,7 @@ from mongo import db
 
 sensor_data = {}
 sensor_rssi = OrderedDict()
+labels = []
 sessions = deque()
 current_session = None
 
@@ -35,6 +36,8 @@ def message_handler(response):
             sensor_data[sensor].pop()
     except Exception as e:
         log.error(log.exc(e))
+## somehow it's possible for these to come in out of order. deque() is not safe here, all kinds of race conditions.
+## why does a freakout happen every second?
 
 def start_session():
     print("STARTING SESSION")
@@ -54,17 +57,23 @@ def draw():
             bar = 0.01
         else:
             bar = 1.0 - (max(abs(rssi) - 25, 0) / 100)
-        # print(rssi, bar)
         x = (20 + (s * 20)) / ctx.width
         ctx.line(x, .1, x, (bar * 0.9) + .1, color=(0., 0., 0., 0.5), thickness=10)
-        ctx.label(x, .05, str(sensor), font="Monaco", size=10, width=10, center=True)
+        if sensor not in labels:
+            print("Adding label for sensor %s" % sensor)
+            labels.append(sensor)
+            ctx.label(x, .05, str(sensor), font="Monaco", size=10, width=10, center=True)
     for sensor in sensor_data:
         samples = sensor_data[sensor]
-        # print(samples)
         if len(samples):
-            ctx.plot([sample[1][0] / 1023 for sample in samples], color=(1., 0., 0., 1.))
-            ctx.plot([sample[1][1] / 1023 for sample in samples], color=(0., 1., 0., 1.))
-            ctx.plot([sample[1][2] / 1023 for sample in samples], color=(0., 0., 1., 1.))
+            ctx.lines([((t_now - sample[0]) / 10.0, sample[1][0] / 1023) for sample in list(samples)], color=(1., 0., 0., 1.))
+            ctx.lines([((t_now - sample[0]) / 10.0, sample[1][1] / 1023) for sample in list(samples)], color=(0., 1., 0., 1.))
+            ctx.lines([((t_now - sample[0]) / 10.0, sample[1][2] / 1023) for sample in list(samples)], color=(0., 0., 1., 1.))
+
+            # exit()
+            # ctx.plot([sample[1][0] / 1023 for sample in samples], color=(1., 0., 0., 1.))
+            # ctx.plot([sample[1][1] / 1023 for sample in samples], color=(0., 1., 0., 1.))
+            # ctx.plot([sample[1][2] / 1023 for sample in samples], color=(0., 0., 1., 1.))
     # i = 0
     # while i < len(sessions) and sessions[i] is None:
     #     i += 1
