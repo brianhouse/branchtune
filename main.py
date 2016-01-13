@@ -2,13 +2,13 @@
 
 import time, json
 from random import random
-from collections import deque
+from collections import deque, OrderedDict
 from housepy import config, log, util, animation
 from housepy.xbee import XBee
 from mongo import db
 
 sensor_data = {}
-sensor_rssi = {}
+sensor_rssi = OrderedDict()
 sessions = deque()
 current_session = None
 
@@ -24,13 +24,13 @@ def message_handler(response):
         rssi = response['rssi']
         if current_session is not None:
             data = {'t': t, 'sensor': sensor, 'sample': sample, 'rssi': rssi, 'session': str(current_session)}
-            # print(json.dumps(data, indent=4))
+            print(json.dumps(data, indent=4))
             db.branches.insert(data)
         if sensor not in sensor_data:
             sensor_data[sensor] = deque()
             sensor_rssi[sensor] = None
         sensor_data[sensor].appendleft((t, sample))
-        sensor_rssi[sensor] = rssi
+        sensor_rssi[sensor] = t, rssi
         if len(sensor_data[sensor]) == 1000:
             sensor_data[sensor].pop()
     except Exception as e:
@@ -48,6 +48,16 @@ def stop_session():
     current_session = None
 
 def draw():
+    t_now = util.timestamp(ms=True)
+    for s, (sensor, (t, rssi)) in enumerate(sensor_rssi.items()):
+        if t_now - t > 3:
+            bar = 0.01
+        else:
+            bar = 1.0 - (max(abs(rssi) - 25, 0) / 100)
+        # print(rssi, bar)
+        x = (20 + (s * 20)) / ctx.width
+        ctx.line(x, .1, x, (bar * 0.9) + .1, color=(0., 0., 0., 0.5), thickness=10)
+        ctx.label(x, .05, str(sensor), font="Monaco", size=10, width=10, center=True)
     for sensor in sensor_data:
         samples = sensor_data[sensor]
         # print(samples)
