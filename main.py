@@ -13,7 +13,8 @@ labels = []
 sessions = deque()
 current_session = None
 
-RANGE = 1023
+RANGE = 0, 1023
+RANGE = 300, 723
 
 def message_handler(response):
     # log.info(response)
@@ -63,12 +64,12 @@ def draw():
             print("Adding label for sensor %s" % sensor)
             labels.append(sensor)
             ctx.label(x, .05, str(sensor), font="Monaco", size=10, width=10, center=True)
-    for sensor in sensor_data:
+    for sensor in list(sensor_data):
         samples = sensor_data[sensor]
         if len(samples):
-            ctx.lines([((t_now - sample[0]) / 10.0, sample[1][0] / 1023) for sample in list(samples)], color=(1., 0., 0., 1.))
-            ctx.lines([((t_now - sample[0]) / 10.0, sample[1][1] / 1023) for sample in list(samples)], color=(0., 1., 0., 1.))
-            ctx.lines([((t_now - sample[0]) / 10.0, sample[1][2] / 1023) for sample in list(samples)], color=(0., 0., 1., 1.))
+            ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][0] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(1., 0., 0., 1.))
+            ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][1] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 1., 0., 1.))
+            ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][2] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 0., 1., 1.))
 
             # exit()
             # ctx.plot([sample[1][0] / 1023 for sample in samples], color=(1., 0., 0., 1.))
