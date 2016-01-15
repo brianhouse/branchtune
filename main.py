@@ -10,8 +10,8 @@ from mongo import db
 sensor_data = {}
 sensor_rssi = OrderedDict()
 labels = []
-sessions = deque()
 current_session = None
+sessions = []
 
 RANGE = 0, 1023
 RANGE = 300, 723
@@ -26,7 +26,7 @@ def message_handler(response):
         rssi = response['rssi']
         if current_session is not None:
             data = {'t': t, 'sensor': sensor, 'sample': sample, 'rssi': rssi, 'session': str(current_session)}
-            print(json.dumps(data, indent=4))
+            # print(json.dumps(data, indent=4))
             db.branches.insert(data)
         if sensor not in sensor_data:
             sensor_data[sensor] = deque()
@@ -37,22 +37,38 @@ def message_handler(response):
             sensor_data[sensor].pop()
     except Exception as e:
         log.error(log.exc(e))
-## somehow it's possible for these to come in out of order. deque() is not safe here, all kinds of race conditions.
-## why does a freakout happen every second?
 
 def start_session():
     print("STARTING SESSION")
     global current_session
-    current_session = db.sessions.insert({'t': util.timestamp(ms=True)})
+    t = util.timestamp(ms=True)
+    current_session = db.sessions.insert({'t': t})
+    sessions.append([t, None])
     print("--> %s" % current_session)
 
 def stop_session():
     print("STOPPING SESSION")
     global current_session
+    t = util.timestamp(ms=True)
+    start_t = db.sessions.find_one({'_id': current_session})['t']
+    duration = t - start_t
+    result = db.sessions.update({'_id': current_session}, {'$set': {'duration': duration}})
+    sessions[-1][-1] = t
     current_session = None
 
 def draw():
     t_now = util.timestamp(ms=True)
+
+    for (start_t, stop_t) in sessions:
+        if stop_t is None:
+            stop_t = t_now        
+        if t_now - stop_t > 10.0:
+            continue        
+        # ctx.line((t_now - stop_t) / 10.0, .99, (t_now - start_t) / 10.0, .99, color=(1., 0., 0., .2), thickness=10.0)    
+        x1 = (t_now - stop_t) / 10.0
+        x2 = (t_now - start_t) / 10.0
+        ctx.rect(x1, 0.0, x2 - x1, 1.0, color=(1., 0., 0., 0.25))
+
     for s, (sensor, (t, rssi)) in enumerate(sensor_rssi.items()):
         if t_now - t > 3:
             bar = 0.01
@@ -64,6 +80,7 @@ def draw():
             print("Adding label for sensor %s" % sensor)
             labels.append(sensor)
             ctx.label(x, .05, str(sensor), font="Monaco", size=10, width=10, center=True)
+
     for sensor in list(sensor_data):
         samples = sensor_data[sensor]
         if len(samples):
@@ -71,18 +88,6 @@ def draw():
             ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][1] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 1., 0., 1.))
             ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][2] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 0., 1., 1.))
 
-            # exit()
-            # ctx.plot([sample[1][0] / 1023 for sample in samples], color=(1., 0., 0., 1.))
-            # ctx.plot([sample[1][1] / 1023 for sample in samples], color=(0., 1., 0., 1.))
-            # ctx.plot([sample[1][2] / 1023 for sample in samples], color=(0., 0., 1., 1.))
-    # i = 0
-    # while i < len(sessions) and sessions[i] is None:
-    #     i += 1
-    # if i != len(sessions):
-    #     j = i
-    #     while j < len(sessions) and sessions[j] is not None:
-    #         j += 1
-    #     ctx.line(i / ctx.width, 0.98, j / ctx.width, 0.98, color=(1., 0., 0., .25), thickness=50.0)
 
 def on_mouse_press(data):
     # x, y, button, modifers = data

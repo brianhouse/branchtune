@@ -6,10 +6,11 @@ from mongo import db, ASCENDING
 import signal_processing as sp
 
 def main(session_id):
-    result = list(db.branches.find().sort([('t', ASCENDING)]))
+    result = list(db.branches.find({'session': session_id}).sort([('t', ASCENDING)]))
     if not len(result):
         print("NO DATA!")
         exit()
+    print(result)
 
     ts = [r['t'] for r in result]
     xs = [r['samples'][0] for r in result]
