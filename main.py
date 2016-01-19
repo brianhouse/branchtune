@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import time, json
+import time, json, math
 from random import random
 from collections import deque, OrderedDict
 from housepy import config, log, util, animation
@@ -20,9 +20,10 @@ def message_handler(response):
     # log.info(response)
     try:
         # print(response['sensor'], response['samples'], response['rssi'])
-        t = util.timestamp(ms=True)
+        t = util.timestamp(ms=True)        
         sensor = response['sensor']
         sample = response['samples']
+        sample.append(round(sum(sample) / 3))
         rssi = response['rssi']
         if current_session is not None:
             data = {'t': t, 'sensor': sensor, 'sample': sample, 'rssi': rssi, 'session': str(current_session)}
@@ -59,6 +60,9 @@ def stop_session():
 def draw():
     t_now = util.timestamp(ms=True)
 
+    # ctx.line3(0., 0., 0., .5, .5, .5)
+    # ctx.line(0., 0., .5, .5)
+
     for (start_t, stop_t) in sessions:
         if stop_t is None:
             stop_t = t_now        
@@ -87,6 +91,7 @@ def draw():
             ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][0] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(1., 0., 0., 1.))
             ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][1] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 1., 0., 1.))
             ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][2] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 0., 1., 1.))
+            ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][3] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 0., 0., 1.))
 
 
 def on_mouse_press(data):
@@ -94,6 +99,6 @@ def on_mouse_press(data):
     stop_session() if current_session is not None else start_session()
 
 xbee = XBee(config['device_name'], message_handler=message_handler)
-ctx = animation.Context(1000, 300, background=(1., 1., 1., 1.), fullscreen=False, title="TREE")    
+ctx = animation.Context(1000, 300, background=(1., 1., 1., 1.), fullscreen=False, title="TREE", smooth=True)    
 ctx.add_callback("mouse_press", on_mouse_press)
 ctx.start(draw)
