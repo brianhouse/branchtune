@@ -19,16 +19,18 @@ def update(dt):
 
 def draw():
     glTranslatef(0, 0, -4)
+    glRotatef(*rotate_x)
+    glRotatef(*rotate_y)
     # ctx.line(0, 0, 1, 1)
     # ctx.line(0, 1, 1, 0)
 
-    glRotatef(ry, 0, 1, 0)
+    # glRotatef(ry, 0, 1, 0)
 
-    # ctx.line3(-1, -1, 0, 1, 1, 0, color=(1., 0., 0., 1.))
-    # ctx.line3(-1, 1, 0, 1, -1, 0, color=(0., 1., 0., 1.))
-    ctx.line3(-1, 0, 0, 1, 0, 0, color=(1., 0., 0., 1.))
-    ctx.line3(0, -1, 0, 0, 1, 0, color=(0., 1., 0., 1.))
-    ctx.line3(0, 0, -1, 0, 0, 1, color=(0., 0., 1., 1.))
+    # ctx.line3D(-1, -1, 0, 1, 1, 0, color=(1., 0., 0., 1.))
+    # ctx.line3D(-1, 1, 0, 1, -1, 0, color=(0., 1., 0., 1.))
+    ctx.line3D(-1, 0, 0, 1, 0, 0, color=(1., 0., 0., 1.))
+    ctx.line3D(0, -1, 0, 0, 1, 0, color=(0., 1., 0., 1.))
+    ctx.line3D(0, 0, -1, 0, 0, 1, color=(0., 0., 1., 1.))
 
     ctx.rect(-1, -1, 2., 2., color=(0., 0., 0., .5))
 
@@ -106,10 +108,25 @@ class Torus(object):
 
 
 
+
+
 ctx = animation.Context(1000, 300, background=(1., 1., 1., 1.), fullscreen=False, title="TREE", _3d=True) 
 
 torus = Torus(1, 0.3, 50, 30)
 rx = ry = rz = 0
+
+rotate_x = 0, 0, 0, 0
+rotate_y = 0, 0, 0, 0
+
+
+def on_mouse_drag(data):
+    x, y, dx, dy, button, modifers = data
+    print(data)
+    global rotate_x, rotate_y
+    SCALE = -0.5
+    rotate_x = (dx * SCALE) + rotate_x[0], 0, 1, 0
+    rotate_y = (dy * SCALE) + rotate_y[0], 1, 0, 0
+ctx.add_callback("mouse_drag", on_mouse_drag)
 
 ctx.start(draw, update)
 
