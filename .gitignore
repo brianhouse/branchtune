@@ -3,3 +3,5 @@ graphs
 signal_processing
 output
 housepy
+*.wav
+charts

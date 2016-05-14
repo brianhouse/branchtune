@@ -6,6 +6,7 @@ from collections import deque, OrderedDict
 from housepy import config, log, util, animation
 from housepy.xbee import XBee
 from mongo import db
+import signal_processing as sp
 
 sensor_data = {}
 sensor_rssi = OrderedDict()
@@ -16,6 +17,9 @@ sessions = []
 RANGE = 0, 1023
 RANGE = 300, 723
 
+rotation_x = 0, 0, 0, 0
+rotation_y = 0, 0, 0, 0
+
 def message_handler(response):
     # log.info(response)
     try:
@@ -23,7 +27,9 @@ def message_handler(response):
         t = util.timestamp(ms=True)        
         sensor = response['sensor']
         sample = response['samples']
-        sample.append(round(sum(sample) / 3))
+        x, y, z = sample
+        rms = math.sqrt(x**2 + y**2 + z**2)
+        sample.append(rms)
         rssi = response['rssi']
         if current_session is not None:
             data = {'t': t, 'sensor': sensor, 'sample': sample, 'rssi': rssi, 'session': str(current_session)}
@@ -57,12 +63,14 @@ def stop_session():
     sessions[-1][-1] = t
     current_session = None
 
+
 def draw():
     t_now = util.timestamp(ms=True)
 
     # ctx.line3(0., 0., 0., .5, .5, .5)
     # ctx.line(0., 0., .5, .5)
 
+    # draw session highlighting
     for (start_t, stop_t) in sessions:
         if stop_t is None:
             stop_t = t_now        
@@ -73,6 +81,7 @@ def draw():
         x2 = (t_now - start_t) / 10.0
         ctx.rect(x1, 0.0, x2 - x1, 1.0, color=(1., 0., 0., 0.25))
 
+    # do labels
     for s, (sensor, (t, rssi)) in enumerate(sensor_rssi.items()):
         if t_now - t > 3:
             bar = 0.01
@@ -85,13 +94,14 @@ def draw():
             labels.append(sensor)
             ctx.label(x, .05, str(sensor), font="Monaco", size=10, width=10, center=True)
 
+    # data
     for sensor in list(sensor_data):
         samples = sensor_data[sensor]
         if len(samples):
             ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][0] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(1., 0., 0., 1.))
             ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][1] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 1., 0., 1.))
             ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][2] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 0., 1., 1.))
-            ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][3] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 0., 0., 1.))
+            ctx.lines([((t_now - sample[0]) / 10.0, ((sample[1][3] / 2) - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 0., 0., 1.))  # hack to bring down rms to similar range
 
 
 def on_mouse_press(data):
