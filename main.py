@@ -26,6 +26,7 @@ def message_handler(response):
         # print(response['sensor'], response['samples'], response['rssi'])
         t = util.timestamp(ms=True)        
         sensor = response['sensor']
+        print(sensor)
         sample = response['samples']
         x, y, z = sample
         rms = math.sqrt(x**2 + y**2 + z**2)
