@@ -7,6 +7,7 @@ from housepy import config, log, util, animation
 from housepy.xbee import XBee
 from mongo import db
 import signal_processing as sp
+import numpy as np
 
 sensor_data = {}
 sensor_rssi = OrderedDict()
@@ -19,6 +20,7 @@ RANGE = 300, 723
 
 rotation_x = 0, 0, 0, 0
 rotation_y = 0, 0, 0, 0
+rotation_x, rotation_y = (-53.0, 0, 1, 0), (13.5, 1, 0, 0)
 
 def message_handler(response):
     # log.info(response)
@@ -68,15 +70,16 @@ def draw():
 
     # ctx.translate(0, 0, -1)
     # ctx.translate(-1.5, -0.5, -1)
-    ctx.translate(-1.3, -0.85, -2)    
+    # ctx.translate(-1.3, -0.85, -2)    
+    ctx.translate(-1., -0.85, -1.5)        
 
     ctx.rotate(*rotation_x)
     ctx.rotate(*rotation_y)
 
     # axes
-    ctx.line3D(-.25, 0, 0, .25, 0, 0, color=(1., 1., 0., 1.))
-    ctx.line3D(0, -.25, 0, 0, .25, 0, color=(0., 1., 1., 1.))
-    ctx.line3D(0, 0, -.25, 0, 0, .25, color=(1., 0., 1., 1.))
+    # ctx.line3D(-.25, 0, 0, .25, 0, 0, color=(1., 1., 0., 1.))
+    # ctx.line3D(0, -.25, 0, 0, .25, 0, color=(0., 1., 1., 1.))
+    # ctx.line3D(0, 0, -.25, 0, 0, .25, color=(1., 0., 1., 1.))
 
 
     # for (start_t, stop_t) in sessions:
@@ -101,16 +104,31 @@ def draw():
     #         labels.append(sensor)
     #         ctx.label(x, .05, str(sensor), font="Monaco", size=10, width=10, center=True)
 
-    colors = (0., 0., 1., 1.), (1., 0., 0., 1.), (0., 1., 0., 1.) 
+    colors = (1., 1., 1., 1.), (.7, 1., 1., 1.), (1., .7, .7, 1.), 
     for s, sensor in enumerate(list(sensor_data)):
         samples = sensor_data[sensor]
-        print(sensor, len(sensor_data[sensor]))
         if len(samples):
-            x = [((t_now - sample[0]) / 10.0, (sample[1][0] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)]
-            y = [((t_now - sample[0]) / 10.0, (sample[1][1] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)]
-            z = [((t_now - sample[0]) / 10.0, (sample[1][2] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)]
-            combo_yz = [((t_now - sample[0]) / 10.0, (sample[1][2] - RANGE[0]) / (RANGE[1] - RANGE[0]), ((sample[1][1] - RANGE[0]) / (RANGE[1] - RANGE[0])) - 0.5) for sample in list(samples)]
-            ctx.lines3D(combo_yz, color=colors[s])
+            # x = [((t_now - sample[0]) / 10.0, (sample[1][0] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)]
+            # y = [((t_now - sample[0]) / 10.0, (sample[1][1] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)]
+            # z = [((t_now - sample[0]) / 10.0, (sample[1][2] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)]
+
+            ts = [(t_now - sample[0]) / 10.0 for sample in samples]
+            ys = [(sample[1][2] - RANGE[0]) / (RANGE[1] - RANGE[0]) for sample in samples]
+            zs = [(sample[1][1] - RANGE[0]) / (RANGE[1] - RANGE[0]) - 0.5 for sample in samples]
+
+            # ys = list(sp.smooth(sp.remove_shots(ys)))
+            # zs = list(sp.smooth(sp.remove_shots(zs)))
+
+            # ys = list(sp.remove_shots(ys))
+            # zs = list(sp.remove_shots(zs))
+            ys = (np.array(ys) * 2.0) - 0.5
+            zs = (np.array(zs) * 2.0) - 0.5
+            ys = sp.smooth(ys, 20)
+            zs = sp.smooth(zs, 20)
+
+            # combo_yz = [((t_now - sample[0]) / 10.0, (sample[1][2] - RANGE[0]) / (RANGE[1] - RANGE[0]), ((sample[1][1] - RANGE[0]) / (RANGE[1] - RANGE[0])) - 0.5) for sample in list(samples)]
+            combo_yz = [(ts[i], ys[i], zs[i]) for i in range(0, len(ys))]
+            ctx.lines3D(combo_yz, color=colors[s], thickness=2.0)
 
 def on_mouse_press(data):
     x, y, button, modifers = data
@@ -123,10 +141,11 @@ def on_mouse_drag(data):
     SCALE = -0.5
     rotation_x = (dx * SCALE) + rotation_x[0], 0, 1, 0
     rotation_y = (dy * SCALE) + rotation_y[0], 1, 0, 0
+    print(rotation_x, rotation_y)
 
 
 xbee = XBee(config['device_name'], message_handler=message_handler)
-ctx = animation.Context(1000, 700, background=(1., 1., 1., 1.), fullscreen=False, title="TREE", smooth=True, _3d=True)    
+ctx = animation.Context(1300, 800, background=(0., 0., 0., 1.), fullscreen=True, title="TREE", smooth=True, _3d=True, screen=1)    
 # ctx.add_callback("mouse_press", on_mouse_press)
 ctx.add_callback("mouse_drag", on_mouse_drag)
 ctx.start(draw)

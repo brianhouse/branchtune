@@ -20,6 +20,8 @@ RANGE = 300, 723
 rotation_x = 0, 0, 0, 0
 rotation_y = 0, 0, 0, 0
 
+colors = (0., 0., 0., 1.), (0., 0., 0., 1.), (1., 0., 0., 1.), (0., 1., 0., 1.), (0., 0., 1., 1.)
+
 def message_handler(response):
     # log.info(response)
     try:
@@ -85,26 +87,26 @@ def draw():
         ctx.rect(x1, 0.0, x2 - x1, 1.0, color=(1., 0., 0., 0.25))
 
     # do labels
-    for s, (sensor, (t, rssi)) in enumerate(sensor_rssi.items()):
+    for s, (sensor, (t, rssi)) in enumerate(sensor_rssi.copy().items()):
         if t_now - t > 3:
             bar = 0.01
         else:
             bar = 1.0 - (max(abs(rssi) - 25, 0) / 100)
         x = (20 + (s * 20)) / ctx.width
-        ctx.line(x, .1, x, (bar * 0.9) + .1, color=(0., 0., 0., 0.5), thickness=10)
+        ctx.line(x, .1, x, (bar * 0.9) + .1, color=colors[sensor], thickness=10)
         if sensor not in labels:
             print("Adding label for sensor %s" % sensor)
             labels.append(sensor)
             ctx.label(x, .05, str(sensor), font="Monaco", size=10, width=10, center=True)
 
     # data
-    for sensor in list(sensor_data):
+    for s, sensor in enumerate(list(sensor_data)):
         samples = sensor_data[sensor]
         if len(samples):
-            ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][0] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(1., 0., 0., 1.))
-            ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][1] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 1., 0., 1.))
-            ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][2] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 0., 1., 1.))
-            ctx.lines([((t_now - sample[0]) / 10.0, ((sample[1][3] / 2) - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 0., 0., 1.))  # hack to bring down rms to similar range
+            # ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][0] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(1., 0., 0., 1.))
+            # ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][1] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 1., 0., 1.))
+            # ctx.lines([((t_now - sample[0]) / 10.0, (sample[1][2] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 0., 1., 1.))
+            ctx.lines([((t_now - sample[0]) / 10.0, ((sample[1][3] / 2) - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=colors[sensor])  # hack to bring down rms to similar range
 
 
 def on_mouse_press(data):
@@ -112,7 +114,7 @@ def on_mouse_press(data):
     stop_session() if current_session is not None else start_session()
 
 xbee = XBee(config['device_name'], message_handler=message_handler)
-xbee.verbose = True
+xbee.verbose = False
 ctx = animation.Context(1000, 300, background=(1., 1., 1., 1.), fullscreen=False, title="TREE", smooth=True)    
 ctx.add_callback("mouse_press", on_mouse_press)
 ctx.start(draw)
