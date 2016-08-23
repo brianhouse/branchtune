@@ -145,7 +145,8 @@ def on_mouse_drag(data):
 
 
 xbee = XBee(config['device_name'], message_handler=message_handler)
-ctx = animation.Context(1300, 800, background=(0., 0., 0., 1.), fullscreen=True, title="TREE", smooth=True, _3d=True, screen=1)    
+# ctx = animation.Context(1300, 800, background=(0., 0., 0., 1.), fullscreen=True, title="TREE", smooth=True, _3d=True, screen=1)    
+ctx = animation.Context(1000, 700, background=(0., 0., 0., 1.), fullscreen=False, title="TREE", smooth=True, _3d=True, screen=0)    
 # ctx.add_callback("mouse_press", on_mouse_press)
 ctx.add_callback("mouse_drag", on_mouse_drag)
 ctx.start(draw)
