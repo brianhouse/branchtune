@@ -14,6 +14,7 @@ labels = []
 current_session = None
 sessions = []
 
+# 1G is 9.8m/s, so 2G sensitivity is +-19.6
 RANGE = -20, 20
 
 rotation_x = 0, 0, 0, 0
@@ -82,7 +83,7 @@ def draw():
         sample = samples[0]
         if len(samples):
             # ctx.lines([ ((t_now - sample[0]) / 10.0, (sample[1][3] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 0., 1., 1.))
-            ctx.lines([ ((t_now - sample[0]) / 10.0, (sample[1][3] - RANGE[0] - 10.0) / (RANGE[1] - RANGE[0]) ) for sample in list(samples)], color=(0., 0., 1., 1.))
+            ctx.lines([ ((t_now - sample[0]) / 10.0, (sample[1][3] - RANGE[0] - 9.8) / (RANGE[1] - RANGE[0]) ) for sample in list(samples)], color=(0., 0., 1., 1.))    # subtract 9.8 to center it
 
 
 fl = FeatherListener(message_handler=on_message)
