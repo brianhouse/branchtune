@@ -38,11 +38,12 @@ class FeatherListener(threading.Thread):
         while True:
             try:
                 message, address = self.receiver.recvfrom(1024)
-                if address not in self.events:
-                    self.events[address] = queue.Queue()
-                self.events[address].put(1)                    
                 data = message.decode('utf-8').split(',')
-                self.data.put({'sensor': address, 't_utc': util.timestamp(ms=True), 'data': [float(v) for v in data[:-1]], 'rssi': int(data[-1])})
+                data = {'id': str(data[0]), 'rssi': int(data[1]), 'ip': address, 't_utc': util.timestamp(ms=True), 'data': [float(v) for v in data[2:]]}
+                self.data.put(data)
+                if data['id'] not in self.events:
+                    self.events[data['id']] = queue.Queue()
+                self.events[data['id']].put(1)                    
             except Exception as e:
                 log.error(log.exc(e))
 

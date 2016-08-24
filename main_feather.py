@@ -15,7 +15,8 @@ current_session = None
 sessions = []
 
 # 1G is 9.8m/s, so 2G sensitivity is +-19.6
-RANGE = -20, 20
+# 4G sensitivity is +-39.2
+RANGE = -40, 40
 
 rotation_x = 0, 0, 0, 0
 rotation_y = 0, 0, 0, 0
@@ -26,7 +27,7 @@ def on_message(response):
     try:
         # print(response['sensor'], response['samples'], response['rssi'])
         t = util.timestamp(ms=True)
-        sensor = config['sensors'][response['sensor'][0]]
+        sensor = config['sensors'][response['id']]
         sample = response['data']
         x, y, z = response['data']
         rms = math.sqrt(x**2 + y**2 + z**2)
@@ -53,16 +54,16 @@ def draw():
     # ctx.line3(0., 0., 0., .5, .5, .5)
     # ctx.line(0., 0., .5, .5)
 
-    # # draw session highlighting
-    # for (start_t, stop_t) in sessions:
-    #     if stop_t is None:
-    #         stop_t = t_now        
-    #     if t_now - stop_t > 10.0:
-    #         continue        
-    #     # ctx.line((t_now - stop_t) / 10.0, .99, (t_now - start_t) / 10.0, .99, color=(1., 0., 0., .2), thickness=10.0)    
-    #     x1 = (t_now - stop_t) / 10.0
-    #     x2 = (t_now - start_t) / 10.0
-    #     ctx.rect(x1, 0.0, x2 - x1, 1.0, color=(1., 0., 0., 0.25))
+    # draw session highlighting
+    for (start_t, stop_t) in sessions:
+        if stop_t is None:
+            stop_t = t_now        
+        if t_now - stop_t > 10.0:
+            continue        
+        # ctx.line((t_now - stop_t) / 10.0, .99, (t_now - start_t) / 10.0, .99, color=(1., 0., 0., .2), thickness=10.0)    
+        x1 = (t_now - stop_t) / 10.0
+        x2 = (t_now - start_t) / 10.0
+        ctx.rect(x1, 0.0, x2 - x1, 1.0, color=(1., 0., 0., 0.25))
 
     # do labels
     for s, (sensor, (t, rssi)) in enumerate(sensor_rssi.copy().items()):
@@ -82,7 +83,6 @@ def draw():
         samples = sensor_data[sensor]            
         sample = samples[0]
         if len(samples):
-            # ctx.lines([ ((t_now - sample[0]) / 10.0, (sample[1][3] - RANGE[0]) / (RANGE[1] - RANGE[0])) for sample in list(samples)], color=(0., 0., 1., 1.))
             ctx.lines([ ((t_now - sample[0]) / 10.0, (sample[1][3] - RANGE[0] - 9.8) / (RANGE[1] - RANGE[0]) ) for sample in list(samples)], color=(0., 0., 1., 1.))    # subtract 9.8 to center it
 
 

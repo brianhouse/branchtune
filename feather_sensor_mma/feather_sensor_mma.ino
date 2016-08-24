@@ -3,21 +3,29 @@
 #include <Adafruit_MMA8451.h>
 #include <Adafruit_Sensor.h>
 
-const char* ssid     = "treehouse";
-const char* password = "10happysquirrels";
-const char* host     = "192.168.1.6";
+const char* ssid     = "Knifeandfork";
+const char* password = "4c6d243a2f3c2b304f4e383a33";
+const char* host     = "192.168.1.108";
 const int port      = 23232;
 unsigned long seconds;
+String idString;
 
 WiFiUDP Udp;
 Adafruit_MMA8451 mma = Adafruit_MMA8451();
 
+
 void setup() {
+  
   Serial.begin(115200);
   delay(10);
 
+  int id = ESP.getFlashChipId();
+  idString = String(id);
+  Serial.print("ID: ");
+  Serial.println(idString);
+
   mma.begin();
-  mma.setRange(MMA8451_RANGE_2_G);
+  mma.setRange(MMA8451_RANGE_4_G);
 
   pinMode(0, OUTPUT);
   
@@ -35,7 +43,7 @@ void loop() {
   sensors_event_t event; 
   mma.getEvent(&event);
   Udp.beginPacket(host, port);
-  String dataString = String(event.acceleration.x, 8) + "," + String(event.acceleration.y, 8) + "," + String(event.acceleration.z, 8) + "," + String(WiFi.RSSI());
+  String dataString = idString + "," + String(WiFi.RSSI()) + "," + String(event.acceleration.x, 8) + "," + String(event.acceleration.y, 8) + "," + String(event.acceleration.z, 8);
   char dataBuf[dataString.length()+1];
   dataString.toCharArray(dataBuf, dataString.length()+1);
   Udp.write(dataBuf);// + event.acceleration.y + "," + event.acceleration.z);
