@@ -40,7 +40,7 @@ void loop() {
   dataString.toCharArray(dataBuf, dataString.length()+1);
   Udp.write(dataBuf);// + event.acceleration.y + "," + event.acceleration.z);
   Udp.endPacket();
-  delay(14);
+  delay(12);
 }
 
 void connectToWifi() {
