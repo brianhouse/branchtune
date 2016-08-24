@@ -47,6 +47,23 @@ def on_message(response):
     except Exception as e:
         log.error(log.exc(e))
 
+def start_session():
+    print("STARTING SESSION")
+    global current_session
+    t = util.timestamp(ms=True)
+    current_session = db.sessions.insert({'t': t})
+    sessions.append([t, None])
+    print("--> %s" % current_session)
+
+def stop_session():
+    print("STOPPING SESSION")
+    global current_session
+    t = util.timestamp(ms=True)
+    start_t = db.sessions.find_one({'_id': current_session})['t']
+    duration = t - start_t
+    result = db.sessions.update({'_id': current_session}, {'$set': {'duration': duration}})
+    sessions[-1][-1] = t
+    current_session = None
 
 def draw():
     t_now = util.timestamp(ms=True)
@@ -85,8 +102,11 @@ def draw():
         if len(samples):
             ctx.lines([ ((t_now - sample[0]) / 10.0, (sample[1][3] - RANGE[0] - 9.8) / (RANGE[1] - RANGE[0]) ) for sample in list(samples)], color=(0., 0., 1., 1.))    # subtract 9.8 to center it
 
+def on_mouse_press(data):
+    # x, y, button, modifers = data
+    stop_session() if current_session is not None else start_session()
 
 fl = FeatherListener(message_handler=on_message)
 ctx = animation.Context(1000, 300, background=(1., 1., 1., 1.), fullscreen=False, title="TREE", smooth=True)    
-# ctx.add_callback("mouse_press", on_mouse_press)
+ctx.add_callback("mouse_press", on_mouse_press)
 ctx.start(draw)

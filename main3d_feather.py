@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-import time, json, math
+import time, json, math, socket
 from random import random
 from collections import deque, OrderedDict
 from housepy import config, log, util, animation
-from housepy.xbee import XBee
+from feather import FeatherListener
 from mongo import db
 import signal_processing as sp
 import numpy as np
@@ -15,20 +15,21 @@ labels = []
 current_session = None
 sessions = []
 
-RANGE = 0, 1023
-RANGE = 300, 723
+# 1G is 9.8m/s, so 2G sensitivity is +-19.6
+# 4G sensitivity is +-39.2
+RANGE = -40, 40
 
-rotation_x = 0, 0, 0, 0
-rotation_y = 0, 0, 0, 0
 rotation_x, rotation_y = (-53.0, 0, 1, 0), (13.5, 1, 0, 0)
 
-def message_handler(response):
+colors = (0., 0., 0., 1.), (0., 0., 0., 1.), (1., 0., 0., 1.), (0., 1., 0., 1.), (0., 0., 1., 1.)
+
+def on_message(response):
     try:
         # print(response['sensor'], response['samples'], response['rssi'])
-        t = util.timestamp(ms=True)        
-        sensor = response['sensor']
-        sample = response['samples']
-        x, y, z = sample
+        t = util.timestamp(ms=True)
+        sensor = config['sensors'][response['id']]
+        sample = response['data']
+        x, y, z = response['data']
         rms = math.sqrt(x**2 + y**2 + z**2)
         sample.append(rms)
         rssi = response['rssi']
@@ -65,43 +66,12 @@ def stop_session():
     current_session = None
 
 def draw():
-    t_now = util.timestamp(ms=True)   
+    t_now = util.timestamp(ms=True)
 
-    # ctx.translate(0, 0, -1)
-    # ctx.translate(-1.5, -0.5, -1)
-    # ctx.translate(-1.3, -0.85, -2)    
     ctx.translate(-1., -0.85, -1.5)        
 
     ctx.rotate(*rotation_x)
     ctx.rotate(*rotation_y)
-
-    # axes
-    # ctx.line3D(-.25, 0, 0, .25, 0, 0, color=(1., 1., 0., 1.))
-    # ctx.line3D(0, -.25, 0, 0, .25, 0, color=(0., 1., 1., 1.))
-    # ctx.line3D(0, 0, -.25, 0, 0, .25, color=(1., 0., 1., 1.))
-
-
-    # for (start_t, stop_t) in sessions:
-    #     if stop_t is None:
-    #         stop_t = t_now        
-    #     if t_now - stop_t > 10.0:
-    #         continue        
-    #     # ctx.line((t_now - stop_t) / 10.0, .99, (t_now - start_t) / 10.0, .99, color=(1., 0., 0., .2), thickness=10.0)    
-    #     x1 = (t_now - stop_t) / 10.0
-    #     x2 = (t_now - start_t) / 10.0
-    #     ctx.rect(x1, 0.0, x2 - x1, 1.0, color=(1., 0., 0., 0.25))
-
-    # for s, (sensor, (t, rssi)) in enumerate(sensor_rssi.items()):
-    #     if t_now - t > 3:
-    #         bar = 0.01
-    #     else:
-    #         bar = 1.0 - (max(abs(rssi) - 25, 0) / 100)
-    #     x = (20 + (s * 20)) / ctx.width
-    #     ctx.line(x, .1, x, (bar * 0.9) + .1, color=(0., 0., 0., 0.5), thickness=10)
-    #     if sensor not in labels:
-    #         print("Adding label for sensor %s" % sensor)
-    #         labels.append(sensor)
-    #         ctx.label(x, .05, str(sensor), font="Monaco", size=10, width=10, center=True)
 
     colors = (1., 1., 1., 1.), (.7, 1., 1., 1.), (1., .7, .7, 1.), 
     for s, sensor in enumerate(list(sensor_data)):
@@ -143,8 +113,7 @@ def on_mouse_drag(data):
     print(rotation_x, rotation_y)
 
 
-xbee = XBee(config['device_name'], message_handler=message_handler)
-# ctx = animation.Context(1300, 800, background=(0., 0., 0., 1.), fullscreen=True, title="TREE", smooth=True, _3d=True, screen=1)    
+fl = FeatherListener(message_handler=on_message)
 ctx = animation.Context(1000, 700, background=(0., 0., 0., 1.), fullscreen=False, title="TREE", smooth=True, _3d=True, screen=0)    
 # ctx.add_callback("mouse_press", on_mouse_press)
 ctx.add_callback("mouse_drag", on_mouse_drag)
